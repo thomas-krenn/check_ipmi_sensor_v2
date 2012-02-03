@@ -31,15 +31,8 @@
 ################################################################################
 
 ################################################################################
-# set ipmimonitoring path
-if [ -x "/usr/sbin/ipmimonitoring" ]; then IPMICOMMAND="/usr/sbin/ipmimonitoring"
-elif [ -x "/usr/bin/ipmimonitoring" ]; then IPMICOMMAND="/usr/bin/ipmimonitoring"
-elif [ -x "/usr/local/sbin/ipmimonitoring" ]; then IPMICOMMAND="/usr/local/sbin/ipmimonitoring"
-fi
-
-################################################################################
 # set text variables
-version="check_ipmi_sensor version 2.3rc1 20110610"
+version="check_ipmi_sensor version 2.3 20110801"
 version_text="$version
 Copyright (C) 2009-2011 Thomas-Krenn.AG (written by Werner Fischer)
 Current updates available at http://www.thomas-krenn.com/en/oss/ipmi-plugin/"
@@ -126,6 +119,16 @@ use of this software, to submit patches, or suggest improvements.
 The mailing list is available at http://lists.thomas-krenn.com/
 "
 abort_text=""
+missing_command_text=""
+
+################################################################################
+# set ipmimonitoring path
+if [ -x "/usr/sbin/ipmimonitoring" ]; then IPMICOMMAND="/usr/sbin/ipmimonitoring"
+elif [ -x "/usr/bin/ipmimonitoring" ]; then IPMICOMMAND="/usr/bin/ipmimonitoring"
+elif [ -x "/usr/local/sbin/ipmimonitoring" ]; then IPMICOMMAND="/usr/local/sbin/ipmimonitoring"
+else missing_command_text=" ipmimonitoring command not found."
+fi
+
 ################################################################################
 # read parameters 
 # * uses getopts, see http://tldp.org/LDP/abs/html/internal.html#GETOPTSX
@@ -175,6 +178,10 @@ else
 		else 
 			abort_text="$abort_text -f <FreeIPMI config file> or -U <username> -P <password> -L <privilege level>"; fi
 	fi
+fi
+if [ -n "$missing_command_text" ]; then
+	echo "Error:$missing_command_text"
+	exit 3
 fi
 if [ -n "$abort_text" ]; then
 	echo "Error:$abort_text missing."

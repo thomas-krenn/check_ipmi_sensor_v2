@@ -2,6 +2,13 @@
 Changelog for check_ipmi_sensor, a Nagios/Icinga plugin to check IPMI sensors
 ################################################################################
 
+Version 2.3 20110801
+  * Added errormessage when ipmimonitoring tool has not been found.
+  * Added PNP4Nagios default-combinedgraph.template in contrib/ directory. 
+    This template creates multigraphs of IPMI sensor data in PNP4Nagios.
+    see: http://lists.thomas-krenn.com/pipermail/ipmi-plugin-user/2011-June/
+    contributor: Andy Spiegl
+
 Version 2.3r1 20110610
   * Added if-statement searching for the right location of ipmimonitoring
     fixing troubles in Gentoo where the location may differ depending on the
