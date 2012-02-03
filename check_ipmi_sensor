@@ -126,6 +126,7 @@ missing_command_text=""
 if [ -x "/usr/sbin/ipmimonitoring" ]; then IPMICOMMAND="/usr/sbin/ipmimonitoring"
 elif [ -x "/usr/bin/ipmimonitoring" ]; then IPMICOMMAND="/usr/bin/ipmimonitoring"
 elif [ -x "/usr/local/sbin/ipmimonitoring" ]; then IPMICOMMAND="/usr/local/sbin/ipmimonitoring"
+elif [ -x "/usr/local/bin/ipmimonitoring" ]; then IPMICOMMAND="/usr/local/bin/ipmimonitoring"
 else missing_command_text=" ipmimonitoring command not found."
 fi
 
