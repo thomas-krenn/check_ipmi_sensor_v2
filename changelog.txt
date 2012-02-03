@@ -2,6 +2,18 @@
 Changelog for check_ipmi_sensor, a Nagios/Icinga plugin to check IPMI sensors
 ################################################################################
 
+Version 2.3r1 20110610
+  * Added if-statement searching for the right location of ipmimonitoring
+    fixing troubles in Gentoo where the location may differ depending on the
+    FreeIPMI version.
+    see: http://bugs.gentoo.org/show_bug.cgi?id=367357#c0
+  * Verbose option -v 3 now contains check_ipmi_sensor version number
+    in the output.
+  * Added -o zenoss option to create Zenoss compatible output underscores
+    instead of whitespaces and no single quotes.
+    contributor: Timme Katz
+  * Updated URLs of links to gawk documentation in the comments.
+
 Version 2.2 20110127
   * Added -b option to enable backward compatibility with FreeIPMI 0.5.*.
     reported by: Tobias Gablunsky, CBXNET combox internet GmbH

@@ -21,7 +21,7 @@
 # The following guides provide helpful information if you want to extend this
 # script:
 #   http://tldp.org/LDP/abs/html/ (Advanced Bash-Scripting Guide)
-#   http://www.gnu.org/manual/gawk/ (Gawk: Effective AWK Programming)
+#   http://www.gnu.org/software/gawk/manual/ (Gawk: Effective AWK Programming)
 #   http://de.wikibooks.org/wiki/Awk (awk Wikibook, in German)
 #   http://nagios.sourceforge.net/docs/3_0/customobjectvars.html (hints on
 #                  custom object variables)
@@ -32,18 +32,22 @@
 
 ################################################################################
 # set ipmimonitoring path
-IPMICOMMAND="/usr/sbin/ipmimonitoring"
+if [ -x "/usr/sbin/ipmimonitoring" ]; then IPMICOMMAND="/usr/sbin/ipmimonitoring"
+elif [ -x "/usr/bin/ipmimonitoring" ]; then IPMICOMMAND="/usr/bin/ipmimonitoring"
+elif [ -x "/usr/local/sbin/ipmimonitoring" ]; then IPMICOMMAND="/usr/local/sbin/ipmimonitoring"
+fi
 
 ################################################################################
 # set text variables
-version_text="check_ipmi_sensor version 2.2 20110127
+version="check_ipmi_sensor version 2.3rc1 20110610"
+version_text="$version
 Copyright (C) 2009-2011 Thomas-Krenn.AG (written by Werner Fischer)
 Current updates available at http://www.thomas-krenn.com/en/oss/ipmi-plugin/"
 usage_text="Usage:
 check_ipmi_sensor -H <hostname>
   [-f <FreeIPMI config file> | -U <username> -P <password> -L <privilege level>]
   [-O <FreeIPMI options>] [-b] [-T <sensor type>] [-x <sensor id>] [-v 1|2|3]
-  [-h] [-V]"
+  [-o zenoss] [-h] [-V]"
 help_text="Options:
   -H <hostname>
        hostname or IP of the IPMI interface.
@@ -92,6 +96,11 @@ help_text="Options:
          -v 1 ..... single line output with additional details for warnings
          -v 2 ..... multi line output, also with additional details for warnings
          -v 3 ..... debugging output, followed by normal multi line output
+  [-o]
+       change output format. Useful for using the plugin with other monitoring
+       software than Nagios or Icinga.
+         -o zenoss .. create ZENOSS compatible formatted output (output with
+                      underscores instead of whitespaces and no single quotes)
   [-h]
        show this help
   [-V]
@@ -120,7 +129,7 @@ abort_text=""
 ################################################################################
 # read parameters 
 # * uses getopts, see http://tldp.org/LDP/abs/html/internal.html#GETOPTSX
-while getopts "H:f:U:P:L:O:bT:v:x:hV?" option
+while getopts "H:f:U:P:L:O:bT:v:x:o:hV?" option
 do
 	case $option in
 		H)	IPMI_HOST=$OPTARG;;
@@ -138,6 +147,7 @@ do
 				IPMI_XLIST="${IPMI_XLIST};$OPTARG"
 			fi
 			;;
+		o)	IPMI_OUTFORMAT=$OPTARG;;
 		h)	echo "$version_text"
 			echo
 			echo "$usage_text"
@@ -195,6 +205,8 @@ then
 	echo "------------- begin of debug output (-v 3 is set): ------------"
 	echo "  script was executed with the following parameters:"
 	echo "    $0 $@"
+	echo "  check_ipmi_sensor version:"
+	echo "    $version"
 	echo "  ipmimonitoring version:"
 	echo "    $ipmicommandversion"
 	echo "  ipmimonitoring was executed with the following parameters:"
@@ -220,10 +232,10 @@ else
 	else
 		echo -n "IPMI Status: ";
         fi
-	echo "$ipmioutput" | gawk -v verbosity=$VERBOSITY -v xlist="$IPMI_XLIST" -F '|' '
+	echo "$ipmioutput" | gawk -v verbosity=$VERBOSITY -v xlist="$IPMI_XLIST" -v outformat="$IPMI_OUTFORMAT" -F '|' '
 ################################################################################
 # * BEGIN rule is executed once only, before the first input record is read
-#   see http://www.gnu.org/manual/gawk/html_node/Using-BEGIN_002fEND.html
+#   see http://www.gnu.org/software/gawk/manual/html_node/Using-BEGIN_002fEND.html
 # * we initialize variables here
 BEGIN {
 	EXIT=0
@@ -235,7 +247,7 @@ BEGIN {
 ################################################################################
 # * the "$4 !~ /Monitoring Status/" pattern below is used to omit the header
 #   output of ipmimonitoring
-#   see http://www.gnu.org/manual/gawk/html_node/Regexp-Usage.html
+#   see http://www.gnu.org/software/gawk/manual/html_node/Regexp-Usage.html
 # * we fill the following arrays with data here:
 #   - arrays containing all sensors:  
 #     - sensor_id[] .......... contains the id of the sensor, e.g. "1"
@@ -258,6 +270,8 @@ $4 !~ /Monitoring Status/ {
 	gsub(/ +$/,"",$5)
 	gsub(/^ +/,"",$6)
 	gsub(/ +$/,"",$6)
+	# Substitute whitespaces with underscores in sensor_name for ZENOSS
+	if (outformat == "zenoss") gsub(/[[:space:]]/,"_",$2)
 
 	sensor_id[NR]=$1
 	sensor_name[NR]=$2
@@ -307,15 +321,18 @@ $4 !~ /Monitoring Status/ {
 
 ################################################################################
 # * END rule is executed once only, after all the input is read
-#   see http://www.gnu.org/manual/gawk/html_node/Using-BEGIN_002fEND.html
+#   see http://www.gnu.org/software/gawk/manual/html_node/Using-BEGIN_002fEND.html
 # * we print the data which has been collected above in this part below
 END {
 	########################################################################
 	# * build perfdata string (variable pstring) using quotes
-	#   see http://www.gnu.org/manual/gawk/html_node/Quoting.html
+	#   see http://www.gnu.org/software/gawk/manual/html_node/Quoting.html
 	while(j<number_of_numerical_records) {
 		j++
-		pstring=pstring"\47"n_record_name[j]"\47="n_record_value[j]" "
+		if (outformat == "zenoss")
+			pstring=pstring""n_record_name[j]"="n_record_value[j]" "
+		else
+			pstring=pstring"\47"n_record_name[j]"\47="n_record_value[j]" "
 	}
 
 	########################################################################
