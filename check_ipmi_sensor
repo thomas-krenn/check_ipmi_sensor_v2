@@ -1,7 +1,7 @@
 #!/bin/bash
 # check_ipmi_sensor: Nagios/Icinga plugin to check IPMI sensors
 #
-# Copyright (C) 2009-2010 Thomas-Krenn.AG (written by Werner Fischer),
+# Copyright (C) 2009-2011 Thomas-Krenn.AG (written by Werner Fischer),
 # additional contributors see changelog.txt
 #
 # This program is free software; you can redistribute it and/or modify it under
@@ -36,14 +36,14 @@ IPMICOMMAND="/usr/sbin/ipmimonitoring"
 
 ################################################################################
 # set text variables
-version_text="check_ipmi_sensor version 2.1 20110124
+version_text="check_ipmi_sensor version 2.2 20110127
 Copyright (C) 2009-2011 Thomas-Krenn.AG (written by Werner Fischer)
 Current updates available at http://www.thomas-krenn.com/en/oss/ipmi-plugin/"
 usage_text="Usage:
 check_ipmi_sensor -H <hostname>
   [-f <FreeIPMI config file> | -U <username> -P <password> -L <privilege level>]
-  [-O <FreeIPMI options>] [-T <sensor type>] [-x <sensor id>] [-v 1|2|3] [-h]
-  [-V]"
+  [-O <FreeIPMI options>] [-b] [-T <sensor type>] [-x <sensor id>] [-v 1|2|3]
+  [-h] [-V]"
 help_text="Options:
   -H <hostname>
        hostname or IP of the IPMI interface.
@@ -71,6 +71,9 @@ help_text="Options:
        additional options for FreeIPMI. Useful for RHEL/CentOS 5.* with
        FreeIPMI 0.5.1 (this elder FreeIPMI version does not support config
        files).
+  [-b]
+       backward compatibility mode for FreeIPMI 0.5.* (this omits the FreeIPMI
+       caching options --quiet-cache and --sdr-cache-recreate)
   [-T <sensor type>]
        limit sensors to query based on IPMI sensor type.
        Examples for IPMI sensor type are 'Fan', 'Temperature', 'Voltage', ...
@@ -78,9 +81,11 @@ help_text="Options:
        full list of possible sensor types. The available types depend on your
        particular server and the available sensors there.
   [-x <sensor id>]
-       exclude sensor matching <sensor id>. Usefull for cases, where unused
-       sensors can't be deleted from SDR and are reported in a non-OK state.
-       Option can be specified multiple times.
+       exclude sensor matching <sensor id>. Useful for cases when unused
+       sensors cannot be deleted from SDR and are reported in a non-OK state.
+       Option can be specified multiple times. The <sensor id> is a numeric
+       value (sensor names are not used as some servers have multiple sensors
+       with the same name). Use -v 3 option to query the <sensor ids>.
   [-v 1|2|3]
        be verbose
          (no -v) .. single line output
@@ -115,7 +120,7 @@ abort_text=""
 ################################################################################
 # read parameters 
 # * uses getopts, see http://tldp.org/LDP/abs/html/internal.html#GETOPTSX
-while getopts "H:f:U:P:L:O:T:v:x:hV?" option
+while getopts "H:f:U:P:L:O:bT:v:x:hV?" option
 do
 	case $option in
 		H)	IPMI_HOST=$OPTARG;;
@@ -124,6 +129,7 @@ do
 		P)	IPMI_PASSWORD=$OPTARG;;
 		L)	IPMI_PRIVILEGE_LEVEL=$OPTARG;;
 		O)	FREEIPMI_OPTIONS=$OPTARG;;
+		b)	FREEIPMI_BACKWARD_COMPATIBILITY=1;;
 		T)	IPMI_SENSOR_TYPE=$OPTARG;;
 		v)	VERBOSITY=$OPTARG;;
 		x)	if [ -z "$IPMI_XLIST" ]; then
@@ -167,7 +173,11 @@ if [ -n "$abort_text" ]; then
 fi
 if [ -n "$IPMI_SENSOR_TYPE" ]; then BASECOMMAND="$BASECOMMAND -g $IPMI_SENSOR_TYPE"; fi
 if [ -n "$FREEIPMI_OPTIONS" ]; then BASECOMMAND="$BASECOMMAND $FREEIPMI_OPTIONS"; fi
-GET_STATUS="$BASECOMMAND --quiet-cache --sdr-cache-recreate"
+if [ -n "$FREEIPMI_BACKWARD_COMPATIBILITY" ]; then
+	GET_STATUS="$BASECOMMAND"
+else
+	GET_STATUS="$BASECOMMAND --quiet-cache --sdr-cache-recreate"
+fi
 
 ################################################################################
 # execute $GET_STATUS
@@ -181,9 +191,12 @@ returncode=$?
 # print debug output when verbosity is set to 3 (-v 3)
 if [ "$VERBOSITY" = "3" ]
 then
+	ipmicommandversion=`eval $IPMICOMMAND -V 2>&1 | head -n 1`
 	echo "------------- begin of debug output (-v 3 is set): ------------"
 	echo "  script was executed with the following parameters:"
 	echo "    $0 $@"
+	echo "  ipmimonitoring version:"
+	echo "    $ipmicommandversion"
 	echo "  ipmimonitoring was executed with the following parameters:"
 	echo "    $GET_STATUS"
 	echo "  ipmimonitoring return code: $returncode"

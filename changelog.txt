@@ -2,6 +2,12 @@
 Changelog for check_ipmi_sensor, a Nagios/Icinga plugin to check IPMI sensors
 ################################################################################
 
+Version 2.2 20110127
+  * Added -b option to enable backward compatibility with FreeIPMI 0.5.*.
+    reported by: Tobias Gablunsky, CBXNET combox internet GmbH
+  * Added ipmimonitoring version information in verbose output (-v 3).
+  * Further improved readability of the help text (-x Option).
+
 Version 2.1 20110124
   * Fixed wrong variable name $IPMICOMMAND in line 133, which prevented the
     successful usage of the -T option of the plugin.
