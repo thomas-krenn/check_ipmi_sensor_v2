@@ -113,6 +113,8 @@ or you provide
   -O '--legacy-output --interpret-oem-data'
 to the plugin.
 
+The plugin will attempt to detect the freeipmi version and correctly set these options.
+
 Further information about this plugin can be found in the Thomas Krenn Wiki
 (currently only in German):
 http://www.thomas-krenn.com/de/wiki/IPMI_Sensor_Monitoring_Plugin
