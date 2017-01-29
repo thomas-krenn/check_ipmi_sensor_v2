@@ -165,6 +165,20 @@ do
 	esac
 done
 
+###############################################################################
+# detect options based on freeipmi version
+
+ipmicommandversion=`eval $IPMICOMMAND -V 2>&1 | head -n 1 | awk '{print $3}'`
+if [ -z "$FREEIPMI_OPTIONS" ];then
+
+  if expr "$ipmicommandversion" '>' 0.8 1>/dev/null; then
+      FREEIPMI_OPTIONS='--legacy-output --interpret-oem-data'
+  else
+      FREEIPMI_OPTIONS=''
+  fi
+
+fi
+
 ################################################################################
 # verify if all mandatory parameters are set and initialize various variables
 if [ -z "$IPMI_HOST" ]; then abort_text="$abort_text -H <hostname>"
@@ -209,7 +223,6 @@ returncode=$?
 # print debug output when verbosity is set to 3 (-v 3)
 if [ "$VERBOSITY" = "3" ]
 then
-	ipmicommandversion=`eval $IPMICOMMAND -V 2>&1 | head -n 1`
 	echo "------------- begin of debug output (-v 3 is set): ------------"
 	echo "  script was executed with the following parameters:"
 	echo "    $0 $@"
