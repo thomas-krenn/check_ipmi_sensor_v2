@@ -83,6 +83,9 @@ help_text="Options:
        Option can be specified multiple times. The <sensor id> is a numeric
        value (sensor names are not used as some servers have multiple sensors
        with the same name). Use -v 3 option to query the <sensor ids>.
+
+       sensor ids can be set using a file /etc/check_ipmi_sensor_ignore ( space separated list of ids)
+
   [-v 1|2|3]
        be verbose
          (no -v) .. single line output
@@ -211,6 +214,13 @@ else
 	GET_STATUS="$BASECOMMAND --quiet-cache --sdr-cache-recreate"
 fi
 
+if [ -z "$IPMI_XLIST" ];then
+  if [ -f /etc/check_ipmi_sensor_ignore ];then
+      IPMI_XLIST=$(head -1 /etc/check_ipmi_sensor_ignore )
+  fi
+fi
+
+
 ################################################################################
 # execute $GET_STATUS
 # * uses old-style backquote so the backslash retains its literal meaning except
@@ -235,6 +245,7 @@ then
 	echo "  ipmimonitoring return code: $returncode"
 	echo "  output of ipmimonitoring:"
 	echo "$ipmioutput"
+  echo "  Excluded sensor list: $IPMI_XLIST"
 	echo "--------------------- end of debug output ---------------------"
 fi
 
