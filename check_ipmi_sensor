@@ -65,12 +65,7 @@ help_text="Options:
        Warning: with this method the password is visible in the process list.
                 So whenever possible use a FreeIPMI confiugration file instead.
   [-O <FreeIPMI options>]
-       additional options for FreeIPMI. Useful for RHEL/CentOS 5.* with
-       FreeIPMI 0.5.1 (this elder FreeIPMI version does not support config
-       files).
-  [-b]
-       backward compatibility mode for FreeIPMI 0.5.* (this omits the FreeIPMI
-       caching options --quiet-cache and --sdr-cache-recreate)
+       additional options for FreeIPMI. For example --exclude-groups=Drive_Slot
   [-T <sensor type>]
        limit sensors to query based on IPMI sensor type.
        Examples for IPMI sensor type are 'Fan', 'Temperature', 'Voltage', ...
@@ -84,7 +79,7 @@ help_text="Options:
        value (sensor names are not used as some servers have multiple sensors
        with the same name). Use -v 3 option to query the <sensor ids>.
 
-       sensor ids can be set using a file /etc/check_ipmi_sensor_ignore ( space separated list of ids)
+       sensor ids can be set using a file /etc/check_ipmi_sensor_ignore ( ; separated list of ids)
 
   [-v 1|2|3]
        be verbose
@@ -102,18 +97,7 @@ help_text="Options:
   [-V]
        show version information
 
-When you use the plugin with newer FreeIPMI versions (version 0.8.* and newer)
-you need to set the --legacy-ouput option to get a parsable output. Further you
-can use --interpret-oem-data to interpret OEM data (available since FreeIPMI
-version 0.8.*)
-You can set these options in your FreeIPMI configuration file:
-  ipmimonitoring-legacy-output on
-  ipmi-sensors-interpret-oem-data on
-or you provide
-  -O '--legacy-output --interpret-oem-data'
-to the plugin.
-
-The plugin will attempt to detect the freeipmi version and correctly set these options.
+Freeipmi 0.8+ is a minimum requirement
 
 Further information about this plugin can be found in the Thomas Krenn Wiki
 (currently only in German):
@@ -138,7 +122,7 @@ fi
 ################################################################################
 # read parameters
 # * uses getopts, see http://tldp.org/LDP/abs/html/internal.html#GETOPTSX
-while getopts "H:f:U:P:L:O:bT:v:x:o:hV?" option
+while getopts "H:f:U:P:L:O:T:v:x:o:hV?" option
 do
   case $option in
     H)  IPMI_HOST=$OPTARG;;
@@ -147,7 +131,6 @@ do
     P)  IPMI_PASSWORD=$OPTARG;;
     L)  IPMI_PRIVILEGE_LEVEL=$OPTARG;;
     O)  FREEIPMI_OPTIONS=$OPTARG;;
-    b)  FREEIPMI_BACKWARD_COMPATIBILITY=1;;
     T)  IPMI_SENSOR_TYPE=$OPTARG;;
     v)  VERBOSITY=$OPTARG;;
     x)  if [ -z "$IPMI_XLIST" ]; then
@@ -174,15 +157,11 @@ done
 # detect options based on freeipmi version
 
 ipmicommandversion=`eval $IPMICOMMAND -V 2>&1 | head -n 1 | awk '{print $3}'`
-if [ -z "$FREEIPMI_OPTIONS" ];then
 
-  if expr "$ipmicommandversion" '>' 0.8 1>/dev/null; then
-      FREEIPMI_OPTIONS='--legacy-output --interpret-oem-data'
-  else
-      FREEIPMI_OPTIONS=''
-  fi
+###############################################################################
+# set some options for freeipmi 0.8+
 
-fi
+FREEIPMI_OPTIONS="$FREEIPMI_OPTIONS --ignore-non-interpretable-sensors"
 
 ################################################################################
 # verify if all mandatory parameters are set and initialize various variables
@@ -210,11 +189,8 @@ if [ -n "$abort_text" ]; then
 fi
 if [ -n "$IPMI_SENSOR_TYPE" ]; then BASECOMMAND="$BASECOMMAND -g $IPMI_SENSOR_TYPE"; fi
 if [ -n "$FREEIPMI_OPTIONS" ]; then BASECOMMAND="$BASECOMMAND $FREEIPMI_OPTIONS"; fi
-if [ -n "$FREEIPMI_BACKWARD_COMPATIBILITY" ]; then
-  GET_STATUS="$BASECOMMAND"
-else
-  GET_STATUS="$BASECOMMAND --quiet-cache --sdr-cache-recreate"
-fi
+
+GET_STATUS="$BASECOMMAND --quiet-cache --sdr-cache-recreate"
 
 if [ -z "$IPMI_XLIST" ];then
   if [ -f /etc/check_ipmi_sensor_ignore ];then
@@ -279,7 +255,7 @@ BEGIN {
 }
 
 ################################################################################
-# * the "$4 !~ /Monitoring Status/" pattern below is used to omit the header
+# * the "$4 !~ /Reading/" pattern below is used to omit the header
 #   output of ipmimonitoring
 #   see http://www.gnu.org/software/gawk/manual/html_node/Regexp-Usage.html
 # * we fill the following arrays with data here:
@@ -292,7 +268,7 @@ BEGIN {
 #   - arrays containing only numerical sensors (for performance data)
 #     - n_record_name[] ...... contains the name of the sensor, e.g. "Fan 1"
 #     - n_record_value[] ..... contains the numerical reading, e.g. "5719.000"
-$4 !~ /Monitoring Status/ {
+$5 !~ /Reading/ {
   ########################################################################
   # Remove extra spaces
   gsub(/ +$/,"",$1)
@@ -311,8 +287,8 @@ $4 !~ /Monitoring Status/ {
   sensor_name[NR]=$2
   # sensor_type[NR]=$3 (currently not used)
   sensor_status[NR]=$4
-  sensor_units[NR]=$5
-  sensor_reading[NR]=$6
+  sensor_reading[NR]=$5
+  sensor_units[NR]=$6
 
   ########################################################################
   # Omit this sensor if the sensor is included in the list of sensors to
