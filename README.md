@@ -1,5 +1,5 @@
-Nagios / Zenos ipmi plugin: check_ipmi_sensor
-=============================================
+Nagios / Icinga / Zenos ipmi plugin: check_ipmi_sensor
+======================================================
 
 
 # Overview
