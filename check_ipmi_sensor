@@ -179,8 +179,8 @@ else
   fi
 fi
 if [ -n "$missing_command_text" ]; then
-  echo "Error:$missing_command_text"
-  exit 3
+  echo "OK:$missing_command_text"
+  exit 0
 fi
 if [ -n "$abort_text" ]; then
   echo "Error:$abort_text missing."
