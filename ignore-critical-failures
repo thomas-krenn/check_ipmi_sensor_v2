@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+#
+# Small script to populate /etc/check_ipmi_sensor_ignore with any critical false sensors to ignore
+# see https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=684152 for examples
+#
+
+ids=''
+for id in `sudo ipmimonitoring | awk -F'|' '{print $1,$4}' | grep Critical| awk '{print $1}'`;do
+  ids="$id;$ids"
+done
+echo "$ids" | sudo tee  /etc/check_ipmi_sensor_ignore 1>/dev/null
+

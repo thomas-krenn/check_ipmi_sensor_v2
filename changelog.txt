@@ -2,6 +2,11 @@
 Changelog for check_ipmi_sensor, a Nagios/Icinga plugin to check IPMI sensors
 ################################################################################
 
+Version 2.4 dev
+  * Adding ignore file for false positive sensors
+  * Dropped < 0.8 support to allow --exclude-groups= freeipmi option filting without --legacy-output 
+    contributor: Giles Westwood
+
 Version 2.3 20110801
   * Added errormessage when ipmimonitoring tool has not been found.
   * Added PNP4Nagios default-combinedgraph.template in contrib/ directory. 
